@@ -90,7 +90,7 @@ class Game:
         for hand_number, deck in self.deck.shuffles_generator():
             # The game is over, one of the bots has won
             if self.players[0].chips == 0 or self.players[1].chips == 0:
-                if self.debug: print(f'Player {"1" if self.players[1].chips == 0 else "2"} has won the game after {hand_number} hands!')
+                if self.debug: print(f'{self.players[0].name if self.players[1].chips == 0 else self.players[1].name} has won the game after {hand_number} hands!')
                 return self.players[0] if self.players[1].chips == 0 else self.players[1]
             
             button_player, bb_player = self.players[self.button], self.players[(self.button + 1) % 2]
@@ -103,8 +103,8 @@ class Game:
             p1pos, p2pos = ('D', 'BB') if self.players[0] == button_player else ('BB', 'D')
             if self.debug:
                 print(f'\n---------------------- Hand Number: {hand_number + 1} ---------------------- \
-                      \nPlayer 1\'s ({p1pos}) Chips: {self.players[0].chips}, Cards: {self.players[0].cards} \
-                      \nPlayer 2\'s ({p2pos}) Chips: {self.players[1].chips}, Cards: {self.players[1].cards}')
+                      \n{self.players[0].name}\'s ({p1pos}) Chips: {self.players[0].chips}, Cards: {self.players[0].cards} \
+                      \n{self.players[1].name}\'s ({p2pos}) Chips: {self.players[1].chips}, Cards: {self.players[1].cards}')
 
             # Run Pre-Flop, Flop, Turn and River
             player_folds = self.betting_streets(community_cards, deck)
@@ -127,8 +127,8 @@ class Game:
             else:
                 self.players[0 if p1hand < p2hand else 1].chips += self.pot
                 if self.debug:
-                    print(f'Player 1 won the hand with a {p1hand_enum.display_name}, while player 2 had a {p2hand_enum.display_name}.' if p1hand < p2hand else \
-                        f'Player 2 won the hand with a {p2hand_enum.display_name}, while player 1 had a {p1hand_enum.display_name}.')
+                    print(f'{self.players[0].name} won the hand with a {p1hand_enum.display_name}, while player 2 had a {p2hand_enum.display_name}.' if p1hand < p2hand else \
+                        f'{self.players[1].name} won the hand with a {p2hand_enum.display_name}, while player 1 had a {p1hand_enum.display_name}.')
             # End of round, move dealer button
             self.button = (self.button + 1) % 2
 
@@ -267,7 +267,7 @@ class Game:
                 move = Move.FOLD
         # Invalid move returned by bot, penalise
         if move not in valid_moves:
-            if self.debug: print(f'Player {current_action + 1} made an invalid move {move}, forcing a fold.')
+            if self.debug: print(f'{self.players[current_action].name} made an invalid move {move}, forcing a fold.')
             move = Move.FOLD
 
         match move:
@@ -295,8 +295,8 @@ class Game:
                 self.handle_bet(current_action, amount)
 
         if self.debug:
-            print(f'Min bet/raise is: {min_bet}, Max bet for Player {current_action + 1} is {max_bet}.')
-            print(f'Player {current_action + 1} does move {move}', f'for {amount} chips ({amount / self.blinds[1]}BB)' if amount > 0 else '')
+            print(f'Min bet/raise is: {min_bet}, Max bet for {self.players[current_action].name} is {max_bet}.')
+            print(f'{self.players[current_action].name} does move {move}', f'for {amount} chips ({amount / self.blinds[1]}BB)' if amount > 0 else '')
         betting_history.append((move, amount))
 
         return move

@@ -53,13 +53,6 @@ class MyPlayer(Player):
         """Your move code here! You are given the community cards (cards both players have access to, the objective is to use your 2 cards (self.cards) with the community cards to make the best 5-card poker hand).
         You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
         If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this."""
-        
-        # Adjust weights according to hand strength and history
-
-        # Size of pot to bet for
-        pot = 0
-        for r in round_history:
-            pot += r[1]
 
         # Adjust weights based off hand strength
         equity = self.get_equity(community_cards)
@@ -93,14 +86,33 @@ class MyPlayer(Player):
                 Move.ALL_IN: 25,
                 Move.FOLD: 1
             }
+        
+        # Choose a random personality for the hand, to confuse aggression detection
+        personality = random.choice([0, 1]) # 0 = passive, 1 = aggressive
+        if personality == 0:
+            weights[Move.CALL] *= 0.33
+            weights[Move.BET] *= 0.33
+            weights[Move.ALL_IN] *= 0.33
+            weights[Move.FOLD] *= 3
+        else:
+            weights[Move.CALL] *= 3
+            weights[Move.BET] *= 3
+            weights[Move.ALL_IN] *= 3
+            weights[Move.FOLD] *= 0.33
+        
+        # Adjust bet based on pot size and equity
+        pot = 0
+        for r in round_history:
+            pot += r[1]
+        bet_amount = max(min_bet, min(pot // 2, max_bet))
 
         # Choose random move according to the weights
         weights = [weights[k] for k in valid_moves]
         move = random.choices(valid_moves, weights=weights, k=1)[0]
         if move == Move.RAISE:
-            return (Move.RAISE, 100)
+            return (Move.RAISE, bet_amount)
         elif move == Move.BET:
-            return (Move.BET, min_bet)
+            return (Move.BET, bet_amount)
         return move
 
 def run_match(_: int) -> str:

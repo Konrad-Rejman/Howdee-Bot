@@ -105,22 +105,12 @@ class MyPlayer(Player):
                 Move.ALL_IN: 17,
                 Move.FOLD: 1
             }
-        
-        # Choose a random personality for the hand, to confuse aggression detection
-        if not hasattr(self, 'personality'):
-            self.personality = random.choice([0, 1]) # 0 = passive, 1 = aggressive
 
-        if self.personality == 0:
-            weights[Move.BET] *= 0.5
-            weights[Move.RAISE] *= 0.4
-            weights[Move.ALL_IN] *= 0.2
-            weights[Move.FOLD] *= 2
-
-        else:
-            weights[Move.BET] *= 2
-            weights[Move.RAISE] *= 2
-            weights[Move.ALL_IN] *= 1.5
-            weights[Move.FOLD] *= 0.5
+        # Be agressive
+        weights[Move.BET] *= 2
+        weights[Move.RAISE] *= 2
+        weights[Move.ALL_IN] *= 1.5
+        weights[Move.FOLD] *= 0.5
         
         # Adjust bet based on pot size and equity
         pot = sum(amount for _, amount in round_history)

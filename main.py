@@ -30,7 +30,7 @@ class MyPlayer(Player):
         raise IndexError(f'Hand Rank Out Of Range: {rank}')
 
     def get_equity(self, community_cards: list[str]) -> float:
-        """Placeholder equity calculation function. You do not have to implement a function like this but some sort of equity calculation is highly recommended."""
+        # Evaluate strength of hand
 
         # Invert rankings
         rankings = {
@@ -47,24 +47,26 @@ class MyPlayer(Player):
         }
 
         card_values = {
-            '2': 2,
-            '3': 3,
-            '4': 4,
-            '5': 5,
-            '6': 6,
+            '2': 2, 
+            '3': 3, 
+            '4': 4, 
+            '5': 5, 
+            '6': 6, 
             '7': 7,
-            '8': 8,
-            '9': 9,
-            'T': 10,
-            'J': 11,
+            '8': 8, 
+            '9': 9, 
+            'T': 10, 
+            'J': 11, 
             'Q': 12,
-            'K': 13,
+            'K': 13, 
             'A': 14
         }
 
-        equity = rankings[self.get_hand_type(community_cards)]
-        equity *= max(card_values[self.cards[0][0]], card_values[self.cards[1][0]])
-        return equity / (7462 * 14) # Normalise equity to 0.0 - 1.0
+        # Normalise hand strength to 0.0 - 1.0
+        base_strength = rankings[self.get_hand_type(community_cards)] / 7462
+        card_bonus = (card_values[self.cards[0][0]] + card_values[self.cards[1][0]]) / 28
+        equity = 0.8 * base_strength + 0.2 * card_bonus
+        return equity
 
     def move(self, community_cards: list[str], valid_moves: list[Move], round_history: list[tuple[Move, int]], min_bet: int, max_bet: int) -> tuple[Move, int] | Move:
         """Your move code here! You are given the community cards (cards both players have access to, the objective is to use your 2 cards (self.cards) with the community cards to make the best 5-card poker hand).

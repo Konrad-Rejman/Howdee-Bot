@@ -78,31 +78,31 @@ class MyPlayer(Player):
 
         if equity < 0.33:
             weights = {
-                Move.CHECK: 100,
-                Move.CALL: 40,
-                Move.BET: 5,
-                Move.RAISE: 2,
-                Move.ALL_IN: 0,
-                Move.FOLD: 80
+                Move.CHECK: 117,
+                Move.CALL: 20,
+                Move.BET: 11,
+                Move.RAISE: 1,
+                Move.ALL_IN: 19,
+                Move.FOLD: 62
             }
 
         elif equity < 0.66:
             weights = {
-                Move.CHECK: 60,
-                Move.CALL: 100,
-                Move.BET: 30,
-                Move.RAISE: 20,
-                Move.ALL_IN: 5,
-                Move.FOLD: 20
+                Move.CHECK: 68,
+                Move.CALL: 95,
+                Move.BET: 3,
+                Move.RAISE: 25,
+                Move.ALL_IN: 3,
+                Move.FOLD: 28
             }
 
         else:
             weights = {
-                Move.CHECK: 20,
-                Move.CALL: 80,
-                Move.BET: 80,
-                Move.RAISE: 60,
-                Move.ALL_IN: 25,
+                Move.CHECK: 21,
+                Move.CALL: 89,
+                Move.BET: 74,
+                Move.RAISE: 42,
+                Move.ALL_IN: 17,
                 Move.FOLD: 1
             }
         

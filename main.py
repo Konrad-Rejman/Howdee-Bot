@@ -43,16 +43,16 @@ class MyPlayer(Player):
 
         # Invert rankings
         rankings = {
-            1: 7462,
-            10: 6185,
-            166: 3325,
-            322: 2467,
-            1599: 1609,
-            1609: 1599,
-            2467: 322,
-            3325: 166,
-            6185: 10,
-            7462: 1
+            1: 7462, # Royal Flush
+            10: 6185, # Straight Flush
+            166: 3325, # Four of a Kind
+            322: 2467, # Full House
+            1599: 1609, # Flush
+            1609: 1599, # Straight
+            2467: 322, # Three of a Kind
+            3325: 166, # Two Pair
+            6185: 10, # One Pair
+            7462: 1 # High Card
         }
 
         rank = self.get_hand_type(community_cards)

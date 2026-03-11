@@ -38,18 +38,40 @@ class MyPlayer(Player):
         """Your move code here! You are given the community cards (cards both players have access to, the objective is to use your 2 cards (self.cards) with the community cards to make the best 5-card poker hand).
         You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
         If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this."""
-
         
         # self.get_hand_type(community_cards) == HandRank.THREE_OF_A_KIND
 
+        # Invert rankings
+        rankings = {
+            1: 7462,
+            10: 6185,
+            166: 3325,
+            322: 2467,
+            1599: 1609,
+            1609: 1599,
+            2467: 322,
+            3325: 166,
+            6185: 10,
+            7462: 1
+        }
+
+        rank = self.get_hand_type(community_cards)
+        rank = rankings[rank]
+
         # Adjust weights according to hand strength and history
-        weights = {Move.CHECK: 1, Move.CALL: 1, Move.BET: 1, Move.RAISE: 1, Move.ALL_IN: 1, Move.FOLD: 1}
+        weights = {Move.CHECK: 100, Move.CALL: 100, Move.BET: 100, Move.RAISE: 100, Move.ALL_IN: 10, Move.FOLD: 100}
+
+        weights[Move.ALL_IN] = weights[Move.ALL_IN] * rank
+        weights[Move.FOLD] = weights[Move.FOLD] / rank
+
         weights = [v for k, v in weights.items() if k in valid_moves]
 
         # Choose random move according to the weights
         move = random.choices(valid_moves, weights=weights, k=1)[0]
         if move == Move.RAISE:
             return (Move.RAISE, 100)
+        elif move == Move.BET:
+            return (Move.BET, random.choice([min_bet, max_bet]))
         return move
 
 def run_match(_: int) -> str:

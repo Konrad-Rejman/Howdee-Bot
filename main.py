@@ -29,17 +29,8 @@ class MyPlayer(Player):
                 return hand_type
         raise IndexError(f'Hand Rank Out Of Range: {rank}')
 
-    def get_equity(self, community_cards: list[str], samples: int = 5000) -> float:
+    def get_equity(self, community_cards: list[str]) -> float:
         """Placeholder equity calculation function. You do not have to implement a function like this but some sort of equity calculation is highly recommended."""
-
-        return 0.0
-
-    def move(self, community_cards: list[str], valid_moves: list[Move], round_history: list[tuple[Move, int]], min_bet: int, max_bet: int) -> tuple[Move, int] | Move:
-        """Your move code here! You are given the community cards (cards both players have access to, the objective is to use your 2 cards (self.cards) with the community cards to make the best 5-card poker hand).
-        You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
-        If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this."""
-        
-        # self.get_hand_type(community_cards) == HandRank.THREE_OF_A_KIND
 
         # Invert rankings
         rankings = {
@@ -55,11 +46,38 @@ class MyPlayer(Player):
             7462: 1 # High Card
         }
 
-        rank = self.get_hand_type(community_cards)
-        rank = rankings[rank]
+        rank = rankings[self.get_hand_type(community_cards)]
+
+        card_values = {
+            '2': 2,
+            '3': 3,
+            '4': 4,
+            '5': 5,
+            '6': 6,
+            '7': 7,
+            '8': 8,
+            '9': 9,
+            'T': 10,
+            'J': 11,
+            'Q': 12,
+            'K': 13,
+            'A': 14
+        }
+
+        rank *= max(card_values[self.cards[0][0]], card_values[self.cards[1][0]])
+
+        return rank
+
+    def move(self, community_cards: list[str], valid_moves: list[Move], round_history: list[tuple[Move, int]], min_bet: int, max_bet: int) -> tuple[Move, int] | Move:
+        """Your move code here! You are given the community cards (cards both players have access to, the objective is to use your 2 cards (self.cards) with the community cards to make the best 5-card poker hand).
+        You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
+        If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this."""
+        
+        # self.get_hand_type(community_cards) == HandRank.THREE_OF_A_KIND
+        rank = self.get_equity(community_cards)
 
         # Adjust weights according to hand strength and history
-        weights = {Move.CHECK: 100, Move.CALL: 100, Move.BET: 100, Move.RAISE: 100, Move.ALL_IN: 10, Move.FOLD: 100}
+        weights = {Move.CHECK: 100, Move.CALL: 100, Move.BET: 100, Move.RAISE: 100, Move.ALL_IN: 100, Move.FOLD: 100}
 
         weights[Move.ALL_IN] = weights[Move.ALL_IN] * rank
         weights[Move.FOLD] = weights[Move.FOLD] / rank
@@ -71,7 +89,7 @@ class MyPlayer(Player):
         if move == Move.RAISE:
             return (Move.RAISE, 100)
         elif move == Move.BET:
-            return (Move.BET, random.choice([min_bet, max_bet]))
+            return (Move.BET, random.choice([range(min_bet, max_bet)]))
         return move
 
 def run_match(_: int) -> str:

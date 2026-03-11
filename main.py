@@ -15,7 +15,7 @@ MATCHES = 1000
 PARALLEL = False
 
 class MyPlayer(Player):
-    name = 'Name your bot/Team name'
+    name = 'Howdee-Bot'
     image_path = 'images/your_image.png' # Optional
 
     def get_hand_type(self, community_cards: list[str]) -> HandRank:
@@ -41,7 +41,16 @@ class MyPlayer(Player):
 
         
         # self.get_hand_type(community_cards) == HandRank.THREE_OF_A_KIND
-        return Move.FOLD
+
+        # Adjust weights according to hand strength and history
+        weights = {Move.CHECK: 1, Move.CALL: 1, Move.BET: 1, Move.RAISE: 1, Move.ALL_IN: 1, Move.FOLD: 1}
+        weights = [v for k, v in weights.items() if k in valid_moves]
+
+        # Choose random move according to the weights
+        move = random.choices(valid_moves, weights=weights, k=1)[0]
+        if move == Move.RAISE:
+            return (Move.RAISE, 100)
+        return move
 
 def run_match(_: int) -> str:
     """Run a single match and return the winner's name."""

@@ -16,7 +16,7 @@ PARALLEL = False
 
 class MyPlayer(Player):
     name = 'Howdee-Bot'
-    image_path = 'images/your_image.png' # Optional
+    image_path = 'images/howdeebot.png'
 
     def get_hand_type(self, community_cards: list[str]) -> HandRank:
         # Handle pre flop calls

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import importlib.util, inspect, queue, random, threading, time
+import importlib.util, inspect, os, queue, random, threading, time
+from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 import tkinter as tk
 from tkinter import ttk
 from typing import List, Optional, Tuple
@@ -38,12 +39,14 @@ Drop this next to main.py and the existing project files. It relies on your proj
 BOTS_DIR = Path(__file__).with_name('bots')
 IMAGES_DIR = Path(__file__).with_name('images')
 
-DEFAULT_MATCHES_PER_PAIR = 10
-DEFAULT_DELAY_MS = 250
+DEFAULT_MATCHES_PER_PAIR = 100
+DEFAULT_DELAY_MS = 0
 DEFAULT_SHUFFLE_MATCHES = True
 DEFAULT_INCLUDE_BUILTINS = False
 DEFAULT_STEP_BATCH = 1
 DEFAULT_UI_UPDATE_EVERY = 10
+# Number of parallel worker processes (matches run across CPU cores).
+DEFAULT_WORKERS = max(1, os.cpu_count() or 4)
 
 @dataclass(frozen=True)
 class BotSpec:
@@ -154,6 +157,23 @@ def play_match(bot_a: BotSpec, bot_b: BotSpec) -> Tuple[str, str]:
     if winner is p1:
         return bot_a.name, bot_b.name
     return bot_b.name, bot_a.name
+
+# --- Parallel execution across processes -------------------------------------
+# Bot classes are loaded from files at runtime (synthetic module names), so they
+# are not picklable across processes. Instead each worker process re-loads the
+# bots once and we dispatch matches by bot name.
+_WORKER_BOTS: dict[str, type[Player]] = {}
+
+def _pool_init(include_builtins: bool) -> None:
+    global _WORKER_BOTS
+    _WORKER_BOTS = {b.name: b.cls for b in load_bots(BOTS_DIR, include_builtins)}
+
+def _pool_play(names: Tuple[str, str]) -> Tuple[str, str]:
+    name_a, name_b = names
+    p1, p2 = _WORKER_BOTS[name_a](), _WORKER_BOTS[name_b]()
+    game = Game(p1, p2, debug=False)
+    winner = game.simulate_hands()
+    return (name_a, name_b) if winner is p1 else (name_b, name_a)
 
 class TournamentUI:
     def __init__(self, root: tk.Tk) -> None:
@@ -333,33 +353,56 @@ class TournamentUI:
                 return
 
             self._worker_stop.clear()
+            include_builtins = bool(self.builtins_var.get())
 
             def _worker_loop() -> None:
+                # Single manager thread that fans matches out to a process pool
                 processed = 0
-                while not self._worker_stop.is_set():
+                inflight: dict = {}
+
+                def submit_next(executor: ProcessPoolExecutor) -> bool:
+                    if self._worker_stop.is_set():
+                        return False
+                    if batch_size is not None and (processed + len(inflight)) >= batch_size:
+                        return False
                     if not self._pending_tasks:
-                        break
-
+                        return False
                     task = self._pending_tasks.pop(0)
-                    self.root.after(0, lambda t=task: self._set_current_match(t))
+                    fut = executor.submit(_pool_play, (task.a.name, task.b.name))
+                    inflight[fut] = task
+                    return True
 
-                    try:
-                        outcome = play_match(task.a, task.b)
-                        self._result_queue.put((task, outcome))
-                    except Exception as e:
-                        self._result_queue.put((task, e))
+                try:
+                    with ProcessPoolExecutor(
+                        max_workers=DEFAULT_WORKERS,
+                        initializer=_pool_init,
+                        initargs=(include_builtins,),
+                    ) as executor:
+                        for _ in range(DEFAULT_WORKERS):
+                            if not submit_next(executor):
+                                break
 
-                    processed += 1
+                        self.root.after(0, self._show_parallel_running)
 
-                    delay_ms = int(float(self.delay_scale.get()))
-                    if delay_ms > 0:
-                        time.sleep(delay_ms / 1000.0)
+                        while inflight:
+                            done, _ = wait(inflight, return_when=FIRST_COMPLETED)
+                            for fut in done:
+                                task = inflight.pop(fut)
+                                try:
+                                    self._result_queue.put((task, fut.result()))
+                                except Exception as e:
+                                    self._result_queue.put((task, e))
+                                processed += 1
 
-                    if batch_size is not None and processed >= batch_size:
-                        break
+                                delay_ms = int(float(self.delay_scale.get()))
+                                if delay_ms > 0:
+                                    time.sleep(delay_ms / 1000.0)
 
-                self._worker_stop.set()
-                self.root.after(0, lambda: self._set_current_match(None))
+                            while submit_next(executor):
+                                pass
+                finally:
+                    self._worker_stop.set()
+                    self.root.after(0, lambda: self._set_current_match(None))
 
             self._worker = threading.Thread(target=_worker_loop, daemon=True)
             self._worker.start()
@@ -444,6 +487,16 @@ class TournamentUI:
                 s.losses,
                 f"{s.win_rate * 100:.2f}",
             ))
+
+    def _show_parallel_running(self) -> None:
+        self.match_title.config(text=f'Running {DEFAULT_WORKERS} matches in parallel…')
+        self.match_progress.config(text='')
+        self.left_name.config(text='')
+        self.right_name.config(text='')
+        self.left_img.config(image='')
+        self.right_img.config(image='')
+        self._left_avatar = None
+        self._right_avatar = None
 
     def _set_current_match(self, task: Optional[MatchTask]) -> None:
         if task is None:
